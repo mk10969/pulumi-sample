@@ -1,3 +1,8 @@
 name: pulumi-sample
 runtime: nodejs
 description: A minimal Kubernetes TypeScript Pulumi program
+template:
+  config:
+    isMinikube:
+      description: Whether you are deploying to minikube
+      default: false

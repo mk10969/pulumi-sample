@@ -11,8 +11,10 @@
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
         "forceConsistentCasingInFileNames": true
+        // "strictNullChecks": true
     },
     "files": [
-        "index.ts"
+        "index.ts",
+        "k8sjs.ts"
     ]
 }

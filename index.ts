@@ -1,37 +1,24 @@
-import * as k8s from "@pulumi/kubernetes";
-import * as kx from "@pulumi/kubernetesx";
+import * as pulumi from "@pulumi/pulumi";
+import * as k8sjs from "./k8sjs";
 
-const appName = "nginx";
-const appImage = "nginx";
-const appLabels = { app: appName };
-const deployment = new k8s.apps.v1.Deployment(appName, {
-  spec: {
-    selector: { matchLabels: appLabels },
-    replicas: 1,
-    template: {
-      metadata: { labels: appLabels },
-      spec: { containers: [{ name: appName, image: appImage }] },
-    },
-  },
+const config = new pulumi.Config();
+
+const redisLeader = new k8sjs.ServiceDeployment("redis-leader", {
+  image: "redis",
+  ports: [6379],
 });
 
-// Allocate an IP to the Deployment.
-const frontend = new k8s.core.v1.Service(appName, {
-  metadata: { labels: deployment.spec.template.metadata.labels },
-  spec: {
-    type: "LoadBalancer",
-    ports: [{ port: 8080, targetPort: 80, protocol: "TCP" }],
-    selector: appLabels,
-  },
+const redisReplica = new k8sjs.ServiceDeployment("redis-replica", {
+  image: "pulumi/guestbook-redis-replica",
+  ports: [6379],
 });
 
-// console.log
-frontend.spec.externalIPs.apply<void>((a) => console.log(a));
-frontend.spec.clusterIP.apply<void>((a) => console.log(a));
+const frontend = new k8sjs.ServiceDeployment("frontend", {
+  replicas: 3,
+  image: "pulumi/guestbook-php-redis",
+  ports: [80],
+  allocateIpAddress: true,
+  isMinikube: config.getBoolean("isMinikube"),
+});
 
-// pulumi stack output
-// OUTPUT  VALUE
-// ip      localhost
-export const ip = frontend.status.loadBalancer.apply<string>(
-  (lb) => lb.ingress[0].ip || lb.ingress[0].hostname
-);
+export let frontendIp = frontend.ipAddress;
